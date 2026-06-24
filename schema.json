@@ -1,0 +1,57 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/TBD/zarr-convention-categorical/refs/tags/v1/schema.json",
+    "title": "Enum Array Zarr Convention (v1)",
+    "description": "Schema for the attributes of a Zarr group conforming to the enum convention (uuid c906c423-56ed-413c-9943-7b2ff52d18f2). Describes a dictionary-encoded array: integer codes that index into a values array.",
+    "type": "object",
+    "additionalProperties": true,
+    "required": [
+        "zarr_conventions",
+        "enum:ordered"
+    ],
+    "properties": {
+        "zarr_conventions": {
+            "type": "array",
+            "description": "Per the Zarr Conventions spec; MUST contain a Convention Metadata Object identifying this convention.",
+            "contains": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "uuid": {
+                        "const": "c906c423-56ed-413c-9943-7b2ff52d18f2"
+                    },
+                    "schema_url": {
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "spec_url": {
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "uuid"
+                ]
+            }
+        },
+        "enum:ordered": {
+            "type": "boolean",
+            "description": "Whether the values carry a meaningful order. When true, values[0] < values[1] < ... When false, the values are unordered (the code-to-value mapping still holds, but conveys no ordering)."
+        },
+        "enum:codes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items":{
+                "type": "string"
+            },
+            "description": "List of keys at which codes array live in this hierarchy as immediate children."
+        }
+    }
+}
