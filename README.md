@@ -57,7 +57,7 @@ my_enum/                   # group, carries the convention metadata and the code
 
 | Member   | Kind  | Requirement                                                                                            |
 | -------- | ----- | ------------------------------------------------------------------------------------------------------ |
-| `codes_X`  | array | **Required.** A **signed** integer dtype (`int8`/`int16`/`int32`/`int64`). Any shape. Can be any name as long as it is stored in the group `zarr.json`  correctly.  More than one of these codes arrays is allowed although there must be at least one.              |
+| `codes_X`  | array | **Required.** A **signed** or **unsigned** integer dtype (`{u}int8`/`{u}int16`/`{u}int32`/`{u}int64`). Any shape. Can be any name as long as it is stored in the group `zarr.json`  correctly.  More than one of these codes arrays is allowed although there must be at least one.              |
 | `values` | array | **Required.** Any Zarr dtype. 1-D, length `K`. Holds the `K` distinct values.                           |
 
 The child encoding array **name is fixed** as `values` while the keys of the codes arrays are stored explicitly in `enum:codes`.
@@ -68,9 +68,8 @@ The child encoding array **name is fixed** as `values` while the keys of the cod
   element `i` of the logical enum equals `values[codes[i]]`; for higher-rank
   `codes`, the same applies element-wise at each position.
 - Each code is a zero-based index into `values`, so valid values are `0 .. K-1`.
-- The sentinel code **`-1` denotes a missing value** (no value). This is why
-  the codes must use a **signed** integer dtype.
-- No code other than `-1` may be negative, and no code may be `>= K`.
+- The sentinel code **`-1` denotes a missing value** (no value). If the type of the codes is unsigned, there are no missing values.
+- No code other than `-1` may be negative if the type is signed, and no code may be `>= K`.
 - Order of appearance in `values` is meaningful only when `ordered` is
   `true` (see below); it otherwise still defines the code↔value mapping but
   carries no ordering semantics.
