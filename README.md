@@ -21,7 +21,7 @@ It will be published once it has reached some degree of acceptance/stability.
 ## Why a convention?
 
 An enum array compresses an array drawn from a small set of repeated values by
-storing each value once in `values` and storing a compact integer `codes` array
+storing each value once in `enum_values` and storing a compact integer `codes` array
 that points into it. The grouping/array layout alone does not tell a reader
 "these two child arrays form an enum" — that meaning has to be attached as
 metadata.
@@ -52,25 +52,25 @@ my_enum/                   # group, carries the convention metadata and the code
 ├── codes_1                # array, signed integer, any shape, name is marked in zarr.json `enum:codes`
 ├── codes_2                # array, signed integer, any shape, name is marked in zarr.json `enum:codes`
 ├── ...                    # more codes arrays if needed, signed integer, any shape
-└── values                 # array, the distinct values, shape (K,)
+└── enum_values                 # array, the distinct values, shape (K,)
 ```
 
 | Member   | Kind  | Requirement                                                                                            |
 | -------- | ----- | ------------------------------------------------------------------------------------------------------ |
 | `codes_X`  | array | **Required.** A **signed** or **unsigned** integer dtype (`{u}int8`/`{u}int16`/`{u}int32`/`{u}int64`). Any shape. Can be any name as long as it is stored in the group `zarr.json`  correctly.  More than one of these codes arrays is allowed although there must be at least one.              |
-| `values` | array | **Required.** Any Zarr dtype. 1-D, length `K`. Holds the `K` distinct values.                           |
+| `enum_values` | array | **Required.** Any Zarr dtype. 1-D, length `K`. Holds the `K` distinct values.                           |
 
-The child encoding array **name is fixed** as `values` while the keys of the codes arrays are stored explicitly in `enum:codes`.
+The child encoding array **name is fixed** as `enum_values` while the keys of the codes arrays are stored explicitly in `enum:codes`.
 
 ### Semantics
 
 - A code `c` in a codes array denotes the logical value `values[c]`. For a 1-D codes `codes`,
-  element `i` of the logical enum equals `values[codes[i]]`; for higher-rank
+  element `i` of the logical enum equals `enum_values[codes[i]]`; for higher-rank
   `codes`, the same applies element-wise at each position.
-- Each code is a zero-based index into `values`, so valid values are `0 .. K-1`.
+- Each code is a zero-based index into `enum_values`, so valid values are `0 .. K-1`.
 - The sentinel code **`-1` denotes a missing value** (no value). If the type of the codes is unsigned, there are no missing values.
 - No code other than `-1` may be negative if the type is signed, and no code may be `>= K`.
-- Order of appearance in `values` is meaningful only when `ordered` is
+- Order of appearance in `enum_values` is meaningful only when `ordered` is
   `true` (see below); it otherwise still defines the code↔value mapping but
   carries no ordering semantics.
 
@@ -81,7 +81,8 @@ The group's `attributes` MUST contain a `zarr_conventions` entry (per the
 
 | Attribute      | Type    | Req. | Meaning                                                                                                    |
 | -------------- | ------- | ---- | ---------------------------------------------------------------------------------------------------------- |
-| `enum:ordered` | boolean | yes  | Whether the values have a meaningful order (`values[0] < values[1] < ...`). `false` means unordered.       |
+| `enum:ordered` | boolean | yes  | Whether the values have a meaningful order (`enum_values[0] < enum_values[1] < ...`). `false` means unordered.       |
+| `enum:codes` | list[str] | yes  | What are the underlying codes that are represented by the `enum_values`       |
 
 Properties are namespaced with the `enum:` prefix to avoid collisions
 with other conventions present on the same node, as recommended by the spec.
@@ -103,7 +104,7 @@ with other conventions present on the same node, as recommended by the spec.
             }
         ],
         "enum:ordered": false,
-        "enum:codes": ["codes"]
+        "enum:codes": ["codes_1", "codes_2"],
     }
 }
 ```
@@ -120,11 +121,11 @@ A convention-aware reader:
 1. Reads the group's `attributes.zarr_conventions` array and matches an entry by
    `uuid == "c906c423-56ed-413c-9943-7b2ff52d18f2"` (falling back to
    `schema_url`, then `spec_url`, per the spec's identity precedence).
-2. Opens each child array at `enum:codes` and the array named `values`.
-3. Either reconstructs the logical value at each code position as `values[code]`,
+2. Opens each child array at `enum:codes` and the array named `enum_values`.
+3. Either reconstructs the logical value at each code position as `enum_values[code]`,
    mapping `code == -1` to the language's missing/null value or uses a data structure like
-   `pandas.Categorical` to handle the arrays (for example, a code array and `values`).
-4. Treats `values` as ordered iff `enum:ordered` is `true`.
+   `pandas.Categorical` to handle the arrays (for example, a code array and `enum_values`).
+4. Treats `enum_values` as ordered iff `enum:ordered` is `true`.
 
 A reader that does **not** know this convention still sees an ordinary group with
 two or more readable integer/value arrays and ignores the `zarr_conventions` metadata —
@@ -143,12 +144,12 @@ across versions. See the [spec's versioning guidance][spec].
 | `encoding-type: "categorical"`   | `zarr_conventions[].uuid == c906c423-...`                  |
 | `encoding-version: "0.2.0"`      | the convention version (`v1`) via `schema_url` tag         |
 | `ordered: <bool>`                | `enum:ordered: <bool>`                                     |
-| child arrays `codes`/`categories`| child arrays, multiple potential `enum:codes` and one `values`                              |
+| child arrays `codes`/`categories`| child arrays, multiple potential `enum:codes` and one `enum_values`                              |
 
 The byte-level layout of the codes and the distinct-values array is identical to
 AnnData's (AnnData names the latter `categories`; this convention names it
-`values`), so existing data can be made conformant by renaming the
-`categories` array to `values` and rewriting the group attributes to include `codes` in the `enum:codes` json field.
+`enum_values`), so existing data can be made conformant by renaming the
+`categories` array to `enum_values` and rewriting the group attributes to include `codes` in the `enum:codes` json field.
 
 ## Examples
 
