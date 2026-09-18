@@ -64,7 +64,7 @@ The child encoding array **name is fixed** as `enum_values` while the keys of th
 
 ### Semantics
 
-- A code `c` in a codes array denotes the logical value `values[c]`. For a 1-D codes `codes`,
+- A code `c` in a codes array denotes the logical value `enum_values[c]`. For a 1-D codes `codes`,
   element `i` of the logical enum equals `enum_values[codes[i]]`; for higher-rank
   `codes`, the same applies element-wise at each position.
 - Each code is a zero-based index into `enum_values`, so valid values are `0 .. K-1`.
